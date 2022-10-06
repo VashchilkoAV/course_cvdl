@@ -1,3 +1,6 @@
 *.pyc
 *.egg-info/
 *.ipynb_checkpoints/
+data/
+TEST/
+train_val/
