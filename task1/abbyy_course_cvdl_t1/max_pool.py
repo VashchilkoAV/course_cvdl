@@ -50,11 +50,11 @@ class MaxPoolLayer(BaseLayer):
         assert (input.shape[-1] + 2 * self.padding - self.kernel_size) % self.stride  == 0
         result = np.zeros((input.shape[0], 
             input.shape[1], 
-            (input.shape[2] + 2 * self.padding - self.kernel_size) // self.stride,
-            (input.shape[3] + 2 * self.padding - self.kernel_size) // self.stride
+            (input.shape[2] + 2 * self.padding - self.kernel_size) // self.stride + 1,
+            (input.shape[3] + 2 * self.padding - self.kernel_size) // self.stride + 1
         ))
 
-        padded_input = self._pad_neg_inf(input)
+        padded_input = self._pad_neg_inf(input, self.padding)
 
         self.grad_poses = np.zeros_like(input)
 
@@ -67,30 +67,32 @@ class MaxPoolLayer(BaseLayer):
                                 i * self.stride: i * self.stride + self.kernel_size, \
                                     j * self.stride: j * self.stride + self.kernel_size])
 
-                        ind_max = np.argmax(padded_input[b, c, \
+                        ind_max = np.unravel_index(np.argmax(padded_input[b, c, \
                                 i * self.stride: i * self.stride + self.kernel_size, \
-                                    j * self.stride: j * self.stride + self.kernel_size])
+                                    j * self.stride: j * self.stride + self.kernel_size]), \
+                                        (self.kernel_size, self.kernel_size))
 
                         self.grad_poses[b, c, \
                                 -self.padding + i * self.stride + ind_max[0], \
                                     -self.padding + j * self.stride + ind_max[1]] = 1
 
+        return result
 
     def backward(self, output_grad: np.ndarray)->np.ndarray:
         result = np.zeros_like(self.grad_poses)
         for b in range(result.shape[0]):
             for c in range(result.shape[1]):
                 i_out = 0
+                j_out = 0
                 for i in range(result.shape[2]):
-                    j_out = 0
                     for j in range(result.shape[3]):
                         if self.grad_poses[b, c, i, j] == 1:
                             result[b, c, i, j] = output_grad[b, c, i_out, j_out]
                             j_out += 1
-                            if j_out - 1 == output_grad.shape[3]:
+                            if j_out  == output_grad.shape[3]:
                                 i_out += 1
+                                j_out = 0
 
 
         return result
-
 
