@@ -50,8 +50,8 @@ class MaxPoolLayer(BaseLayer):
         assert (input.shape[-1] + 2 * self.padding - self.kernel_size) % self.stride  == 0
         result = np.zeros((input.shape[0], 
             input.shape[1], 
-            (input.shape[2] + 2 * self.padding - self.kernel_size) / self.kernel_size,
-            (input.shape[3] + 2 * self.padding - self.kernel_size) / self.kernel_size
+            (input.shape[2] + 2 * self.padding - self.kernel_size) / self.stride,
+            (input.shape[3] + 2 * self.padding - self.kernel_size) / self.stride
         ))
 
         padded_input = self._pad_neg_inf(input)
