@@ -54,40 +54,46 @@ class MaxPoolLayer(BaseLayer):
             (input.shape[3] + 2 * self.padding - self.kernel_size) // self.stride + 1
         ))
 
-        self.size = input.shape
         padded_input = self._pad_neg_inf(input, self.padding)
 
-        self.grad_poses = np.zeros(result.shape + tuple([2]), dtype=int)
+        self.grad_poses = np.zeros_like(input)
+
         
-        for b in range(result.shape[0]):
-            for c in range(result.shape[1]):
-                for i in range(result.shape[2]):
-                    for j in range(result.shape[3]):
-                        ind_max = np.unravel_index(np.argmax(padded_input[b, c, \
-                                i * self.stride: i * self.stride + self.kernel_size, \
-                                    j * self.stride: j * self.stride + self.kernel_size]), \
-                                        (self.kernel_size, self.kernel_size))
+        for i in range(result.shape[2]):
+            for j in range(result.shape[3]):
+                value = np.max(padded_input[:, :, \
+                        i * self.stride: i * self.stride + self.kernel_size, \
+                            j * self.stride: j * self.stride + self.kernel_size])
 
-                        value = padded_input[b, c, \
-                                i * self.stride + ind_max[0], \
-                                    j * self.stride + ind_max[1]]
+                            
+                result[:, :, i, j] = value
 
-                        result[b, c, i, j] = value
-                        
-                        self.grad_poses[b, c, i, j, :] = \
-                            [-self.padding + i * self.stride + ind_max[0], \
-                                    -self.padding + j * self.stride + ind_max[1]]
+                ind_max = np.unravel_index(np.argmax(padded_input[:, :, \
+                        i * self.stride: i * self.stride + self.kernel_size, \
+                            j * self.stride: j * self.stride + self.kernel_size]), \
+                                (self.kernel_size, self.kernel_size))
+
+                self.grad_poses[:, :, \
+                        -self.padding + i * self.stride + ind_max[0], \
+                            -self.padding + j * self.stride + ind_max[1]] = 1
 
         return result
 
     def backward(self, output_grad: np.ndarray)->np.ndarray:
-        result = np.zeros(self.size)
-        for b in range(self.grad_poses.shape[0]):
-            for c in range(self.grad_poses.shape[1]):
-                for i in range(self.grad_poses.shape[2]):
-                    for j in range(self.grad_poses.shape[3]):
-                        idx = self.grad_poses[b, c, i, j]
-                        result[b, c, idx[0], idx[1]] += output_grad[b, c, i, j]
+        print(output_grad)
+        result = np.zeros_like(self.grad_poses)
+        for b in range(result.shape[0]):
+            for c in range(result.shape[1]):
+                i_out = 0
+                j_out = 0
+                for i in range(result.shape[2]):
+                    for j in range(result.shape[3]):
+                        if self.grad_poses[b, c, i, j] == 1:
+                            result[b, c, i, j] = output_grad[b, c, i_out, j_out]
+                            j_out += 1
+                            if j_out  == output_grad.shape[3]:
+                                i_out += 1
+                                j_out = 0
 
         return result
 
