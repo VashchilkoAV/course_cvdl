@@ -35,15 +35,15 @@ class MaxPoolLayer(BaseLayer):
         
 
     @staticmethod
-    def _pad_neg_inf(tensor, one_size_pad, axis=[-1, -2]):
+    def _pad_neg_inf(tensor: np.ndarray, one_size_pad: int, axis=[-1, -2]) -> np.ndarray:
         """
         Добавляет одинаковый паддинг по осям, указанным в axis.
         Метод не проверяется в тестах -- можно релизовать слой без
         использования этого метода.
         """
-        return np.pad(tensor, ((0, 0), (0, 0), \
-            (one_size_pad, one_size_pad), (one_size_pad, one_size_pad)), \
-                 mode='constant', constant_values=-np.inf)
+        npad = np.array([(0, 0)] * tensor.ndim)
+        npad[axis] = (one_size_pad, one_size_pad)
+        return np.pad(tensor, npad, mode='constant', constant_values=-np.inf)
 
     def forward(self, input: np.ndarray) -> np.ndarray:
         assert input.shape[-1] == input.shape[-2]
