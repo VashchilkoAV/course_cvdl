@@ -22,8 +22,10 @@ class ConvLayer(BaseLayer):
         assert(out_channels > 0)
         assert(kernel_size % 2 == 1)
         super().__init__()
-        self.parameters.append(np.zeros((1, in_channels, kernel_size, kernel_size)))
+        self.parameters.append(np.zeros((out_channels, in_channels, kernel_size, kernel_size)))
         self.parameters.append(np.zeros((out_channels)))
+        self.parameters_grads.append(np.zeros_like(self.parameters[0]))
+        self.parameters_grads.append(np.zeros_like(self.parameters[1]))
 
     @property
     def kernel_size(self):
@@ -58,10 +60,48 @@ class ConvLayer(BaseLayer):
         """
         assert kernel.shape[-1] == kernel.shape[-2]
         assert kernel.shape[-1] % 2 == 1
-        pass
+
+        offset = (kernel.shape[-1] - 1) // 2
+        result = np.zeros((input.shape[0], kernel.shape[0], input.shape[2], input.shape[3]))
+
+        padded_input = ConvLayer._pad_zeros(input, offset).copy()
+        
+        for c_out in range(result.shape[1]):
+            for i in range(result.shape[2]):
+                for j in range(result.shape[3]):
+                    window = padded_input[:, :, i: i + kernel.shape[-1], j: j + kernel.shape[-1]]
+                    res = (window * kernel).sum()
+                    result[:, c_out, i, j] += res
+
+        return result
 
     def forward(self, input: np.ndarray) -> np.ndarray:
-        raise NotImplementedError()
+        offset = (self.kernel_size - 1) // 2
+        self.prev_input = input.copy()
+        padded_input = ConvLayer._pad_zeros(input, offset).copy()
+        result = np.zeros((input.shape[0], self.out_channels, input.shape[2], input.shape[3]))
+
+        for b in range(result.shape[0]):
+            for c in range(result.shape[1]):
+                for i in range(result.shape[2]):
+                    for j in range(result.shape[3]):
+                        window = padded_input[b, :, i: i + self.kernel_size, j: j + self.kernel_size]
+                        res = (window * self.parameters[0][c]).sum() + self.parameters[1][c]
+                        result[b, c, i, j] += res
+        return result
+
+
 
     def backward(self, output_grad: np.ndarray)->np.ndarray:
-        raise NotImplementedError()
+        offset = (self.kernel_size - 1) // 2
+        padded_input = ConvLayer._pad_zeros(self.prev_input, offset).copy()
+        padded_result = np.zeros_like(ConvLayer._pad_zeros(self.prev_input, offset))
+        for b in range(output_grad.shape[0]):
+            for c in range(self.parameters_grads[0].shape[0]):
+                for i in range(self.prev_input.shape[2]):
+                    for j in range(self.prev_input.shape[3]):
+                        padded_result[b, :, i: i + self.kernel_size, j:j + self.kernel_size] += self.parameters[0][c] * output_grad[b, c, i, j]
+                        self.parameters_grads[0][c] += padded_input[b, :, i: i + self.kernel_size, j:j + self.kernel_size] * output_grad[b, c, i, j]
+                        self.parameters_grads[1][c] += output_grad[b, c, i, j]
+
+        return padded_result[:, :, offset: -offset, offset: -offset]
