@@ -5,7 +5,7 @@ from .data import SuimDataset
 
 
 class SuimModel(nn.Module):
-    def __init__(self, freeze_encoder:bool=True):
+    def __init__(self, freeze_encoder: bool = True):
         super().__init__()
         self.net = smp.Linknet(
             encoder_weights="imagenet",

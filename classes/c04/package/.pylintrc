@@ -1,0 +1,10 @@
+
+[TYPECHECK]
+# ignore torch member warnings - they are broken
+generated-members=numpy.*, torch.*
+
+[FORMAT]
+# allow x as a good name
+good-names=i,j,k,x
+# increase max length
+max-line-length=128

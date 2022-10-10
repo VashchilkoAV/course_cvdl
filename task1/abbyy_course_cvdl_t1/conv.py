@@ -22,7 +22,8 @@ class ConvLayer(BaseLayer):
         assert(out_channels > 0)
         assert(kernel_size % 2 == 1)
         super().__init__()
-        raise NotImplementedError()
+        self.parameters.append(np.zeros((1, in_channels, kernel_size, kernel_size)))
+        self.parameters.append(np.zeros((out_channels)))
 
     @property
     def kernel_size(self):
@@ -43,7 +44,9 @@ class ConvLayer(BaseLayer):
         Метод не проверяется в тестах -- можно релизовать слой без
         использования этого метода.
         """
-        pass
+        npad = np.array([(0, 0)] * tensor.ndim)
+        npad[axis] = (one_side_pad, one_side_pad)
+        return np.pad(tensor, npad, mode='constant', constant_values=0)
 
     @staticmethod
     def _cross_correlate(input, kernel):

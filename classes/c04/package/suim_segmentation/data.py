@@ -22,10 +22,15 @@ class SuimDataset(tdata.Dataset):
         ("Robots (AUVs/ROVs/instruments)", "100"),
         ("Reefs and invertebrates", "101"),
         ("Fish and vertebrates", "110"),
-        ("Sea-floor and rocks", "111")
+        ("Sea-floor and rocks", "111"),
     )
 
-    def __init__(self, root: Path, masks_as_color: bool = True, target_size: Tuple[int, int]=None):
+    def __init__(
+        self,
+        root: Path,
+        masks_as_color: bool = True,
+        target_size: Tuple[int, int] = None,
+    ):
         self.root = Path(root)
         self.samples = self._load_dataset(self.root, masks_as_color=masks_as_color)
         self.target_size = target_size
@@ -36,12 +41,16 @@ class SuimDataset(tdata.Dataset):
         Тензоры должны быть приведены к размеру target_size, если target_size не None
         (например, через transforms.functional.resize).
         """
-        assert (0 <= idx < len(self))
+        assert 0 <= idx < len(self)
         img, mask = self.samples[idx]
         if self.target_size is None:
             return (img, mask)
         img = transforms.functional.resize(img, self.target_size)
-        mask = transforms.functional.resize(mask, self.target_size, interpolation=transforms.functional.InterpolationMode.NEAREST)
+        mask = transforms.functional.resize(
+            mask,
+            self.target_size,
+            interpolation=transforms.functional.InterpolationMode.NEAREST,
+        )
         return (img, mask)
 
     def __len__(self) -> int:
@@ -51,13 +60,17 @@ class SuimDataset(tdata.Dataset):
         return f"<SuimDataset({len(self)})|{self.root}>"
 
     @classmethod
-    def _load_dataset(cls, root: Path, masks_as_color: bool) -> List[ Tuple[torch.Tensor, torch.Tensor] ]:
+    def _load_dataset(
+        cls, root: Path, masks_as_color: bool
+    ) -> List[Tuple[torch.Tensor, torch.Tensor]]:
         if not root.exists():
             raise ValueError(f"Root {root.absolute()} does not exist")
         images_root = root / cls.IMAGES_FOLDER
         masks_root = root / cls.MASKS_FOLDER
 
-        assert images_root.exists(), f"Images path {images_root.absolute()} does not exist"
+        assert (
+            images_root.exists()
+        ), f"Images path {images_root.absolute()} does not exist"
         assert masks_root.exists(), f"Masks path {masks_root.absolute()} does not exist"
 
         images_paths = list(images_root.glob("*.jpg"))
@@ -89,7 +102,9 @@ class SuimDataset(tdata.Dataset):
 
 
 class EveryNthFilterSampler(tdata.Sampler):
-    def __init__(self, *, dataset_size: int, n: int, pass_every_nth: bool, shuffle: bool):
+    def __init__(
+        self, *, dataset_size: int, n: int, pass_every_nth: bool, shuffle: bool
+    ):
         self.dataset_size = dataset_size
         self.n = n
         self.pass_every_nth = pass_every_nth
@@ -102,8 +117,8 @@ class EveryNthFilterSampler(tdata.Sampler):
             то возвращает все индексы, которые нацело делятся на n,
             иначе возвращает все индексы, которые НЕ делятся нацело на n
         """
-        if (self.pass_every_nth):
-            return self.n * np.arange( self.dataset_size // self.n )
+        if self.pass_every_nth:
+            return self.n * np.arange(self.dataset_size // self.n)
         else:
             x = np.arange(self.dataset_size)
             return x[x % self.n != 0]
