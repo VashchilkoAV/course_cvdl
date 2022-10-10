@@ -1,0 +1,5 @@
+outs:
+- md5: 78281c51c7bb6aaedcb08ad38e9ca4f1.dir
+  size: 1837161836
+  nfiles: 3050
+  path: train_val

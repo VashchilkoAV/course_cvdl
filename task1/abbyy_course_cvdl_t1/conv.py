@@ -66,12 +66,13 @@ class ConvLayer(BaseLayer):
 
         padded_input = ConvLayer._pad_zeros(input, offset).copy()
         
-        for c_out in range(result.shape[1]):
-            for i in range(result.shape[2]):
-                for j in range(result.shape[3]):
-                    window = padded_input[:, :, i: i + kernel.shape[-1], j: j + kernel.shape[-1]]
-                    res = (window * kernel).sum()
-                    result[:, c_out, i, j] += res
+        for b in range(result.shape[0]):
+            for c_out in range(result.shape[1]):
+                for i in range(result.shape[2]):
+                    for j in range(result.shape[3]):
+                        window = padded_input[b, :, i: i + kernel.shape[-1], j: j + kernel.shape[-1]]
+                        res = (window * kernel[c_out]).sum()
+                        result[b, c_out, i, j] += res
 
         return result
 
@@ -88,8 +89,10 @@ class ConvLayer(BaseLayer):
                         window = padded_input[b, :, i: i + self.kernel_size, j: j + self.kernel_size]
                         res = (window * self.parameters[0][c]).sum() + self.parameters[1][c]
                         result[b, c, i, j] += res
-        return result
 
+        #print(self.parameters[1])
+        #print(np.array([i * np.ones((input.shape[-1], input.shape[-2])) for i in self.parameters[1]])[None, ...].shape)
+        return ConvLayer._cross_correlate(input, self.parameters[0]) + np.array([i * np.ones((input.shape[-1], input.shape[-2])) for i in self.parameters[1]])[None, ...]
 
 
     def backward(self, output_grad: np.ndarray)->np.ndarray:
@@ -102,6 +105,8 @@ class ConvLayer(BaseLayer):
                     for j in range(self.prev_input.shape[3]):
                         padded_result[b, :, i: i + self.kernel_size, j:j + self.kernel_size] += self.parameters[0][c] * output_grad[b, c, i, j]
                         self.parameters_grads[0][c] += padded_input[b, :, i: i + self.kernel_size, j:j + self.kernel_size] * output_grad[b, c, i, j]
-                        self.parameters_grads[1][c] += output_grad[b, c, i, j]
 
+        self.parameters_grads[1] += output_grad.sum(tuple([0, -1, -2]))
+        #print(ConvLayer._cross_correlate(self.prev_input, output_grad).shape)
+        #self.parameters_grads[0] += ConvLayer._cross_correlate(self.prev_input, output_grad)
         return padded_result[:, :, offset: -offset, offset: -offset]
