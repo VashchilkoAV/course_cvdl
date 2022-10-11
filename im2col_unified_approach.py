@@ -110,34 +110,36 @@ class ConvLayer(BaseLayer):
         assert kernel.shape[-1] == kernel.shape[-2]
         assert kernel.shape[-1] % 2 == 1
 
-        pass
+        offset = (kernel.shape[-1] - 1) // 2
+        
+        X_col = ConvLayer._im2col_indices(input, kernel.shape[-1], kernel.shape[-2], padding=offset)
+        W_col = kernel.reshape(kernel.shape[0], -1)
 
+        out = W_col @ X_col
+        out = out.reshape(kernel.shape[0], input.shape[2], input.shape[3], input.shape[0])
+        out = out.transpose(3, 0, 1, 2)
+        
+        return out
 
     def forward(self, input: np.ndarray) -> np.ndarray:
         self.prev_input = input.copy()
         
-        offset = (self.kernel_size - 1) // 2
-        
-        input_col = ConvLayer._im2col_indices(input, self.kernel_size, self.kernel_size, padding=offset)
-        kernel_col = self.parameters[0].reshape(self.out_channels, -1)
-
-        result = kernel_col @ input_col
-        result = result.reshape(self.out_channels, input.shape[2], input.shape[3], input.shape[0])
-        result = result.transpose(3, 0, 1, 2)
-        return result + self.parameters[1][:, None, None]
+        return ConvLayer._cross_correlate(input, self.parameters[0]) + self.parameters[1][:, None, None]
 
     def backward(self, output_grad: np.ndarray)->np.ndarray:
         offset = (self.kernel_size - 1) // 2
 
-        output_grad_reshaped = output_grad.transpose(1, 2, 3, 0).reshape(self.out_channels, -1)
+        dout_reshaped = output_grad.transpose(1, 2, 3, 0).reshape(self.out_channels, -1)
         
-        input_col = ConvLayer._im2col_indices(self.prev_input, self.kernel_size, self.kernel_size, padding=offset)
-        self.parameters_grads[0] += (output_grad_reshaped @ input_col.T).reshape(self.parameters_grads[0].shape)
+        X_col = ConvLayer._im2col_indices(self.prev_input, self.kernel_size, self.kernel_size, padding=offset)
+        dW = dout_reshaped @ X_col.T
+        dW = dW.reshape(self.parameters_grads[0].shape)
+
+        W_reshape = self.parameters[0].reshape(self.out_channels, -1)
+        dX_col = W_reshape.T @ dout_reshaped
+        dX = ConvLayer._col2im_indices(dX_col, self.prev_input.shape, self.kernel_size, self.kernel_size, padding=offset)
 
         self.parameters_grads[1] += output_grad.sum(tuple([0, -1, -2]))
+        self.parameters_grads[0] += dW
 
-        kernel_col = self.parameters[0].reshape(self.out_channels, -1)
-        result_col = kernel_col.T @ output_grad_reshaped
-        result = ConvLayer._col2im_indices(result_col, self.prev_input.shape, self.kernel_size, self.kernel_size, padding=offset)
-
-        return result
+        return dX

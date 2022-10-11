@@ -48,56 +48,7 @@ class ConvLayer(BaseLayer):
         """
         npad = np.array([(0, 0)] * tensor.ndim)
         npad[axis] = (one_side_pad, one_side_pad)
-        return np.pad(tensor, npad, mode='constant', constant_values=0).copy()
-
-    @staticmethod
-    def _get_im2col_indices(x_shape, field_height, field_width, padding=1):
-        # First figure out what the size of the output should be
-        N, C, H, W = x_shape
-
-        out_height = (H + 2 * padding - field_height) + 1
-        out_width = (W + 2 * padding - field_width) + 1
-
-        i0 = np.repeat(np.arange(field_height), field_width)
-        i0 = np.tile(i0, C)
-        i1 = 1 * np.repeat(np.arange(out_height), out_width)
-        j0 = np.tile(np.arange(field_width), field_height * C)
-        j1 = 1 * np.tile(np.arange(out_width), out_height)
-        i = i0.reshape(-1, 1) + i1.reshape(1, -1)
-        j = j0.reshape(-1, 1) + j1.reshape(1, -1)
-
-        k = np.repeat(np.arange(C), field_height * field_width).reshape(-1, 1)
-
-        return (k, i, j)
-
-    @staticmethod
-    def _im2col_indices(x, field_height, field_width, padding=1):
-        """ An implementation of im2col based on some fancy indexing """
-        # Zero-pad the input
-        p = padding
-        x_padded = ConvLayer._pad_zeros(x, p)
-
-        k, i, j = ConvLayer._get_im2col_indices(x.shape, field_height, field_width, padding)
-
-        cols = x_padded[:, k, i, j]
-        C = x.shape[1]
-        cols = cols.transpose(1, 2, 0).reshape(field_height * field_width * C, -1)
-        return cols
-
-    @staticmethod
-    def _col2im_indices(cols, x_shape, field_height=3, field_width=3, padding=1):
-        """ An implementation of col2im based on fancy indexing and np.add.at """
-        N, C, H, W = x_shape
-        H_padded, W_padded = H + 2 * padding, W + 2 * padding
-        x_padded = np.zeros((N, C, H_padded, W_padded), dtype=cols.dtype)
-        k, i, j = ConvLayer._get_im2col_indices(x_shape, field_height, field_width, padding)
-
-        cols_reshaped = cols.reshape(C * field_height * field_width, -1, N)
-        cols_reshaped = cols_reshaped.transpose(2, 0, 1)
-        np.add.at(x_padded, (slice(None), k, i, j), cols_reshaped)
-        if padding == 0:
-            return x_padded
-        return x_padded[:, :, padding:-padding, padding:-padding]
+        return np.pad(tensor, npad, mode='constant', constant_values=0)
 
     @staticmethod
     def _cross_correlate(input, kernel):
@@ -110,34 +61,55 @@ class ConvLayer(BaseLayer):
         assert kernel.shape[-1] == kernel.shape[-2]
         assert kernel.shape[-1] % 2 == 1
 
-        pass
+        offset = (kernel.shape[-1] - 1) // 2
+        result = np.zeros((input.shape[0], kernel.shape[0], input.shape[2], input.shape[3]))
 
+        padded_input = ConvLayer._pad_zeros(input, offset).copy()
+        
+        print(input.shape, kernel.shape)
+
+        for b in range(result.shape[0]):
+            for c_out in range(result.shape[1]):
+                for i in range(result.shape[2]):
+                    for j in range(result.shape[3]):
+                        window = padded_input[b, :, i: i + kernel.shape[-1], j: j + kernel.shape[-1]]
+                        res = (window * kernel[c_out]).sum()
+                        result[b, c_out, i, j] += res
+
+        return result
 
     def forward(self, input: np.ndarray) -> np.ndarray:
-        self.prev_input = input.copy()
-        
         offset = (self.kernel_size - 1) // 2
-        
-        input_col = ConvLayer._im2col_indices(input, self.kernel_size, self.kernel_size, padding=offset)
-        kernel_col = self.parameters[0].reshape(self.out_channels, -1)
+        self.prev_input = input.copy()
+        padded_input = ConvLayer._pad_zeros(input, offset).copy()
+        result = np.zeros((input.shape[0], self.out_channels, input.shape[2], input.shape[3]))
 
-        result = kernel_col @ input_col
-        result = result.reshape(self.out_channels, input.shape[2], input.shape[3], input.shape[0])
-        result = result.transpose(3, 0, 1, 2)
-        return result + self.parameters[1][:, None, None]
+        for b in range(result.shape[0]):
+            for c in range(result.shape[1]):
+                for i in range(result.shape[2]):
+                    for j in range(result.shape[3]):
+                        window = padded_input[b, :, i: i + self.kernel_size, j: j + self.kernel_size]
+                        res = (window * self.parameters[0][c]).sum() + self.parameters[1][c]
+                        result[b, c, i, j] += res
+
+        #print(self.parameters[1])
+        #print(np.array([i * np.ones((input.shape[-1], input.shape[-2])) for i in self.parameters[1]])[None, ...].shape)
+        return ConvLayer._cross_correlate(input, self.parameters[0]) + np.array([i * np.ones((input.shape[-1], input.shape[-2])) for i in self.parameters[1]])[None, ...]
+
 
     def backward(self, output_grad: np.ndarray)->np.ndarray:
         offset = (self.kernel_size - 1) // 2
-
-        output_grad_reshaped = output_grad.transpose(1, 2, 3, 0).reshape(self.out_channels, -1)
-        
-        input_col = ConvLayer._im2col_indices(self.prev_input, self.kernel_size, self.kernel_size, padding=offset)
-        self.parameters_grads[0] += (output_grad_reshaped @ input_col.T).reshape(self.parameters_grads[0].shape)
+        padded_input = ConvLayer._pad_zeros(self.prev_input, offset).copy()
+        padded_result = np.zeros_like(ConvLayer._pad_zeros(self.prev_input, offset))
+        for b in range(output_grad.shape[0]):
+            for c in range(self.parameters_grads[0].shape[0]):
+                for i in range(self.prev_input.shape[2]):
+                    for j in range(self.prev_input.shape[3]):
+                        padded_result[b, :, i: i + self.kernel_size, j:j + self.kernel_size] += self.parameters[0][c] * output_grad[b, c, i, j]
+                        self.parameters_grads[0][c] += padded_input[b, :, i: i + self.kernel_size, j:j + self.kernel_size] * output_grad[b, c, i, j]
 
         self.parameters_grads[1] += output_grad.sum(tuple([0, -1, -2]))
-
-        kernel_col = self.parameters[0].reshape(self.out_channels, -1)
-        result_col = kernel_col.T @ output_grad_reshaped
-        result = ConvLayer._col2im_indices(result_col, self.prev_input.shape, self.kernel_size, self.kernel_size, padding=offset)
-
-        return result
+        #print(ConvLayer._cross_correlate(self.prev_input, output_grad).shape)
+        print(padded_result[:, :, offset: -offset, offset: -offset], ConvLayer._cross_correlate(self.prev_input, output_grad))
+        #self.parameters_grads[0] += ConvLayer._cross_correlate(self.prev_input, output_grad)
+        return padded_result[:, :, offset: -offset, offset: -offset]
