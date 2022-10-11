@@ -66,6 +66,8 @@ class ConvLayer(BaseLayer):
 
         padded_input = ConvLayer._pad_zeros(input, offset).copy()
         
+        print(input.shape, kernel.shape)
+
         for b in range(result.shape[0]):
             for c_out in range(result.shape[1]):
                 for i in range(result.shape[2]):
@@ -108,5 +110,6 @@ class ConvLayer(BaseLayer):
 
         self.parameters_grads[1] += output_grad.sum(tuple([0, -1, -2]))
         #print(ConvLayer._cross_correlate(self.prev_input, output_grad).shape)
+        #print(padded_result[:, :, offset: -offset, offset: -offset], ConvLayer._cross_correlate(self.prev_input, output_grad))
         #self.parameters_grads[0] += ConvLayer._cross_correlate(self.prev_input, output_grad)
         return padded_result[:, :, offset: -offset, offset: -offset]
