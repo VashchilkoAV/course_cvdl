@@ -14,9 +14,18 @@ class PointsNonMaxSuppression(nn.Module):
         super().__init__()
         self.kernel_size = kernel_size
 
+    @staticmethod
+    def _nms(heat, kernel=3):
+        pad = (kernel - 1) // 2
+
+        hmax = nn.functional.max_pool2d(
+            heat, (kernel, kernel), stride=1, padding=pad)
+        keep = (hmax == heat).float()
+        return heat * keep
+
+
     def forward(self, points):
-        raise NotImplementedError()
-        return points
+        return self._nms(points, self.kernel_size)
 
 
 class ScaleObjects(nn.Module):

@@ -2,6 +2,7 @@
 Здесь находится backbone на основе resnet-18, в статье "Objects as Points" он описан в
 5.Implementation details/Resnet и в Figure 6-b.
 """
+from turtle import forward
 from torch import nn
 from torchvision.models import resnet18
 
@@ -41,10 +42,28 @@ class HeadlessResnet18Encoder(nn.Module):
     def __init__(self):
         # полносверточная сеть, архитектуру можно найти в
         # https://arxiv.org/pdf/1512.03385.pdf, Table1
-        raise NotImplementedError()
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(in_channels=3, out_channels=64, stride=2, kernel_size=7, padding=3),
+            nn.MaxPool2d(stride=2, kernel_size=2),
+
+            ResidualBlock(3, 64, 64, 1, False),
+            ResidualBlock(3, 64, 64, 1, False),
+
+            ResidualBlock(3, 64, 128, 2, True),
+            ResidualBlock(3, 128, 128, 1, False),
+
+            ResidualBlock(3, 128, 256, 2, True),
+            ResidualBlock(3, 256, 256, 1, False),
+
+            ResidualBlock(3, 256, 512, 2, True),
+            ResidualBlock(3, 512, 512, 1, False)
+        )
+        
 
     def forward(self, x):
-        raise NotImplementedError()
+        return self.net(x)
+
 
 
 class UpscaleTwiceLayer(nn.Module):
@@ -53,12 +72,39 @@ class UpscaleTwiceLayer(nn.Module):
     В реализации из "Objects as Points" используются Transposed Convolutions с
     отсылкой по деталям к https://arxiv.org/pdf/1804.06208.pdf
     """
-    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, output_padding=0):
+    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, output_padding=1):
         super().__init__()
-        raise NotImplementedError()
+        
+        self.layer = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, 
+            stride=2, padding=padding, output_padding=output_padding)
 
     def forward(self, x):
-        raise NotImplementedError()
+        return self.layer(x)
+
+
+class ResidualBlock(nn.Module):
+    def __init__(self, kernel_size, in_channels, out_channels, stride, is_proj):
+        super().__init__()
+
+        self.main_forward = nn.Sequential(
+            nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride, padding=1),
+            nn.BatchNorm2d(num_features=out_channels),
+            nn.ReLU(),
+            nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size, stride=1, padding=1),
+            nn.BatchNorm2d(num_features=out_channels),
+            nn.ReLU()
+        )
+
+        if is_proj:
+            self.skip_connection = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, stride=stride, kernel_size=1, padding=0)
+        else:
+            self.skip_connection = lambda x: x
+
+
+    def forward(self, x):
+        main = self.main_forward(x)
+        skip = self.skip_connection(x)
+        return main + skip
 
 
 class ResnetBackbone(nn.Module):

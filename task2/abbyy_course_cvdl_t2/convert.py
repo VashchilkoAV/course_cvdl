@@ -99,7 +99,7 @@ class ObjectsToPoints(nn.Module):
         """
         По умолчанию heatmaps - пустые и заполнены нулями.
         """
-        raise NotImplementedError()
+        return torch.zeros((b, с+4, hw, hw))
 
     @classmethod
     def compute_objects_locations(cls, objects: torch.Tensor)-> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -109,7 +109,14 @@ class ObjectsToPoints(nn.Module):
             batch_idx[B * N], y_idx[B * N], x_idx[B * N]
         """
         batch_size, objects_per_image, d6 = objects.shape
-        raise NotImplementedError()
+        res = []
+        for i in range(objects.shape[0]):
+            for _ in range(objects.shape[1]):
+                res.append(i)
+        batch_idx = torch.Tensor(res)
+        y_idx = objects[:, :, 0].flatten()
+        x_idx = objects[:, :, 1].flatten()
+
         return batch_idx.long(), y_idx.long(), x_idx.long()
 
     @classmethod
@@ -119,8 +126,11 @@ class ObjectsToPoints(nn.Module):
         Возвращает для всех объектов их поправки положения их центров по отношению к локациям
          в виде двух плоских тензоров: dy[B * N], dx[B * N]
         """
-        raise NotImplementedError()
-        return dy, dx
+        batch_size, objects_per_image, d6 = objects.shape
+        dy = objects[:, :, 0] - torch.floor(objects[:, :, 0])
+        dx = objects[:, :, 1] - torch.floor(objects[:, :, 1])
+        
+        return dy.flatten(), dx.flatten()
 
     @classmethod
     def compute_objects_sizes(cls, objects: torch.Tensor)-> Tuple[torch.Tensor, torch.Tensor]:
@@ -129,7 +139,9 @@ class ObjectsToPoints(nn.Module):
         Возвращает для всех объектов их размеры в пикселях в виде двух плоских тензоров:
             dy[B * N], dx[B * N]
         """
-        raise NotImplementedError()
+        h = objects[:, :, 2]
+        w = objects[:, :, 3]
+
         return h.flatten(), w.flatten()
 
     @classmethod
@@ -138,7 +150,8 @@ class ObjectsToPoints(nn.Module):
         Сглаживает one-hot points_heatmap ядром с гауссианой.
         Скорее всего, через свёртку с ядром.
         """
-        raise NotImplementedError()
+        shape = points_heatmap.shape[1]
+        return nn.functional.conv2d(input=points_heatmap, weight=smooth_kernel[None, ...].repeat(shape, 1, 1, 1), bias=None, padding='same', groups=shape)
 
     @staticmethod
     def _gaussian_2d(kernel_size: int) -> torch.Tensor:
@@ -180,6 +193,43 @@ class PointsToObjects(nn.Module):
         self.top_k = objects_per_image
         self.min_conf = min_confidence
 
+
+    @staticmethod
+    def _nms(heat, kernel=3):
+        pad = (kernel - 1) // 2
+
+        hmax = nn.functional.max_pool2d(
+            heat, (kernel, kernel), stride=1, padding=pad)
+        keep = (hmax == heat).float()
+        return heat * keep
+
+
+    @staticmethod
+    def _topk(scores, K=42):
+        batch, cat, height, width = scores.size()
+        topk_scores, topk_inds = torch.topk(scores.view(batch, -1), K)
+        topk_clses = (topk_inds / (height * width)).int()
+        topk_inds = topk_inds % (height * width)
+        topk_ys   = (topk_inds / width).int()
+        topk_xs   = (topk_inds % width).int()
+        return topk_scores, topk_clses, topk_ys, topk_xs
+
+
     def forward(self, points_heatmap):
-        raise NotImplementedError()
+        objects = torch.zeros((points_heatmap.shape[0], self.top_k, 6))
+
+        heatmaps = points_heatmap[:, : -4, :, :]#self._nms(points_heatmap[:, : -4, :, :])
+        scores, clses, ys, xs = self._topk(heatmaps, self.top_k)
+
+        for b in range(objects.shape[0]):
+            for k in range(objects.shape[1]):
+                if scores[b, k] > self.min_conf:
+                    objects[b, k, 0] = ys[b, k] + points_heatmap[b, -4, ys[b, k], xs[b, k]]
+                    objects[b, k, 1] = xs[b, k] + points_heatmap[b, -3, ys[b, k], xs[b, k]]
+                    objects[b, k, 2] = points_heatmap[b, -2, ys[b, k], xs[b, k]]
+                    objects[b, k, 3] = points_heatmap[b, -1, ys[b, k], xs[b, k]]
+                    objects[b, k, 4] = clses[b, k]
+                    objects[b, k, 5] = (scores[b, k] > self.min_conf)
+
+        #return torch.where(objects[:, :, 5] > 0, objects, torch.zeros((points_heatmap.shape[0], self.top_k, 6)))
         return objects
