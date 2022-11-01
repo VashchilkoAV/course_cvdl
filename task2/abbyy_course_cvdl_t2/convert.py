@@ -231,5 +231,4 @@ class PointsToObjects(nn.Module):
                     objects[b, k, 4] = clses[b, k]
                     objects[b, k, 5] = (scores[b, k] > self.min_conf)
 
-        #return torch.where(objects[:, :, 5] > 0, objects, torch.zeros((points_heatmap.shape[0], self.top_k, 6)))
         return objects
