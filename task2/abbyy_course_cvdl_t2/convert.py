@@ -114,6 +114,7 @@ class ObjectsToPoints(nn.Module):
             for _ in range(objects.shape[1]):
                 res.append(i)
         batch_idx = torch.Tensor(res)
+        batch_idx = torch.repeat_interleave(torch.arange(objects.shape[0]), objects.shape[1])
         y_idx = objects[:, :, 0].flatten()
         x_idx = objects[:, :, 1].flatten()
 
@@ -229,6 +230,6 @@ class PointsToObjects(nn.Module):
                     objects[b, k, 2] = points_heatmap[b, -2, ys[b, k], xs[b, k]]
                     objects[b, k, 3] = points_heatmap[b, -1, ys[b, k], xs[b, k]]
                     objects[b, k, 4] = clses[b, k]
-                    objects[b, k, 5] = (scores[b, k] > self.min_conf)
+                    objects[b, k, 5] = scores[b, k] * (scores[b, k] > self.min_conf)
 
         return objects

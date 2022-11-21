@@ -28,7 +28,8 @@ class CenterNetHead(nn.Module):
             nn.Conv2d(k_in_channels, c_classes, 
                 kernel_size=1, stride=1, 
                 padding=0),
-            nn.Softmax(dim=-1)
+            #nn.Softmax(dim=-1)
+            nn.Sigmoid()
             )
 
         self.offset_head = nn.Sequential(
@@ -39,6 +40,7 @@ class CenterNetHead(nn.Module):
                 kernel_size=1, stride=1, 
                 padding=0),
              #nn.Softmax(dim=-1)
+            nn.Sigmoid()
             )
 
         self.size_head = nn.Sequential(

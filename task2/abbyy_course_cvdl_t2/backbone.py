@@ -75,8 +75,11 @@ class UpscaleTwiceLayer(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, output_padding=1):
         super().__init__()
         
-        self.layer = nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, 
-            stride=2, padding=padding, output_padding=output_padding)
+        self.layer = nn.Sequential(nn.ConvTranspose2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
+            stride=2, padding=padding, output_padding=output_padding),
+            nn.BatchNorm2d(num_features=out_channels),
+            nn.ReLU()
+        )
 
     def forward(self, x):
         return self.layer(x)
