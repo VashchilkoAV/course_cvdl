@@ -54,9 +54,14 @@ def train(dataset, *, net=None, criterion=None, batch_size=8, lr=3e-4, epochs=20
             if torch.isnan(loss_value).any():
                 warnings.warn("nan loss! skip update")
                 print(f"last loss: {[l.item() for l in losses]}")
-                print(inputs.cpu().numpy())
-                print(outputs[0].detach().cpu().numpy())
-                continue
+                torch.save(anno.cpu(), 'anno.pt')
+                torch.save(inputs.cpu().numpy(), 'inputs.pt')
+                torch.save(outputs.detach().cpu().numpy(), 'outputs.pt')
+                #print(inputs.cpu().numpy())
+                #print(outputs[0].detach().cpu().numpy())
+                #print(anno.cpu().numpy())
+                #continue
+                break
             running_loss += loss_value
             if (i % stats_step == 0):
                 print(f"epoch {epoch}|{i}; total loss:{running_loss / stats_step}")
