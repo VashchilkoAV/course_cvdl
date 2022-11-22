@@ -41,15 +41,6 @@ def train(dataset, *, net=None, criterion=None, batch_size=8, lr=3e-4, epochs=20
             # дальше постепенно уменьшаем
             optimizer.lr = lr / 2**epoch
 
-        b = False
-
-        for p in list(net.parameters()):
-            if p.isnan().any():
-                b = True
-
-        if b:
-            break
-
         running_loss = 0.0
         for i, data in enumerate(trainloader, 0):
             inputs, anno = data
@@ -71,7 +62,7 @@ def train(dataset, *, net=None, criterion=None, batch_size=8, lr=3e-4, epochs=20
             running_loss += loss_value
             if (i % stats_step == 0):
                 print(f"epoch {epoch}|{i}; total loss:{running_loss / stats_step}")
-                print(f"last losses: {[l.item() for l in losses.flatten()]}")
+                print(f"last losses: {[l.item() for l in losses.flatten()]} gradient: {loss_value.grad}")
                 running_loss = 0.0
             loss_value.backward()
             optimizer.step()
