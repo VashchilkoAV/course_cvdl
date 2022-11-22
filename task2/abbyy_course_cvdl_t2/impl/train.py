@@ -41,6 +41,15 @@ def train(dataset, *, net=None, criterion=None, batch_size=8, lr=3e-4, epochs=20
             # дальше постепенно уменьшаем
             optimizer.lr = lr / 2**epoch
 
+        b = False
+
+        for p in list(net.parameters()):
+            if p.isnan().any():
+                b = True
+
+        if b:
+            break
+
         running_loss = 0.0
         for i, data in enumerate(trainloader, 0):
             inputs, anno = data
@@ -57,9 +66,6 @@ def train(dataset, *, net=None, criterion=None, batch_size=8, lr=3e-4, epochs=20
                 torch.save(anno.cpu(), 'anno.pt')
                 torch.save(inputs.cpu().numpy(), 'inputs.pt')
                 torch.save(outputs.detach().cpu().numpy(), 'outputs.pt')
-                #print(inputs.cpu().numpy())
-                #print(outputs[0].detach().cpu().numpy())
-                #print(anno.cpu().numpy())
                 #continue
                 break
             running_loss += loss_value

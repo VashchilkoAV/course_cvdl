@@ -61,8 +61,11 @@ class CenterNetLoss(nn.Module):
         """
         Focal loss между двумя heatmap. В статье параметры FL alpha=2, beta=4.
         """
-        return -1*torch.where(target_cyx == 1, (1 - predict_cyx) ** alpha * torch.log(predict_cyx), 
-            (1 - target_cyx) ** beta * predict_cyx ** alpha * torch.log(1 - predict_cyx)).sum()
+
+        predict_cyx_clipped = predict_cyx.clip(1e-6, 1. - 1e-6)
+
+        return -torch.sum(torch.where(target_cyx == 1, (1 - predict_cyx_clipped) ** alpha * torch.log(predict_cyx_clipped), 
+            (1 - target_cyx) ** beta * predict_cyx_clipped ** alpha * torch.log(1 - predict_cyx_clipped)), dim=(1, 2, 3))
 
 
     def loss_l1(self, predict, target, is_real_object):
@@ -72,4 +75,4 @@ class CenterNetLoss(nn.Module):
         (т.к. их для всех изображений генерируется по N, а детекций может быть меньше),
         и для объектов с is_real_object=False следует считать лосс как 0.
         """
-        return torch.sum(torch.abs(predict - target) * is_real_object)
+        return torch.sum(torch.abs(predict - target) * is_real_object, dim=(1, 2, 3))
