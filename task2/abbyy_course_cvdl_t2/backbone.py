@@ -2,7 +2,6 @@
 Здесь находится backbone на основе resnet-18, в статье "Objects as Points" он описан в
 5.Implementation details/Resnet и в Figure 6-b.
 """
-from turtle import forward
 from torch import nn
 from torchvision.models import resnet18
 
