@@ -208,7 +208,7 @@ class PointsToObjects(nn.Module):
     @staticmethod
     def _topk(scores, K=42):
         batch, cat, height, width = scores.size()
-        topk_scores, topk_inds = torch.topk(scores.view(batch, -1), K)
+        topk_scores, topk_inds = torch.topk(scores.reshape(batch, -1), K)
         topk_clses = (topk_inds / (height * width)).int()
         topk_inds = topk_inds % (height * width)
         topk_ys   = (topk_inds / width).int()
@@ -217,6 +217,7 @@ class PointsToObjects(nn.Module):
 
 
     def forward(self, points_heatmap):
+        
         objects = torch.zeros((points_heatmap.shape[0], self.top_k, 6))
 
         heatmaps = points_heatmap[:, : -4, :, :]#self._nms(points_heatmap[:, : -4, :, :])

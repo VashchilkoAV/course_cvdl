@@ -62,7 +62,7 @@ def train(dataset, *, net=None, criterion=None, batch_size=8, lr=3e-4, epochs=20
             running_loss += loss_value
             if (i % stats_step == 0):
                 print(f"epoch {epoch}|{i}; total loss:{running_loss / stats_step}")
-                print(f"last losses: {[l.item() for l in losses.flatten()]} gradient: {loss_value.grad}")
+                print(f"last losses: {[l.item() for l in losses.flatten()]}")
                 running_loss = 0.0
             loss_value.backward()
             optimizer.step()
