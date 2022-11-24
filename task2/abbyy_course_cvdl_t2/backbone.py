@@ -3,7 +3,7 @@
 5.Implementation details/Resnet и в Figure 6-b.
 """
 from torch import nn
-from torchvision.models import resnet18
+from torchvision.models import resnet18, resnet34
 
 
 class HeadlessPretrainedResnet18Encoder(nn.Module):
@@ -16,6 +16,32 @@ class HeadlessPretrainedResnet18Encoder(nn.Module):
     def __init__(self):
         super().__init__()
         md = resnet18(pretrained=True)
+        # все, кроме avgpool и fc
+        self.md = nn.Sequential(
+            md.conv1,
+            md.bn1,
+            md.relu,
+            md.maxpool,
+            md.layer1,
+            md.layer2,
+            md.layer3,
+            md.layer4
+        )
+
+    def forward(self, x):
+        return self.md(x)
+
+
+class HeadlessPretrainedResnet34Encoder(nn.Module):
+    """
+    Предобученная на imagenet версия resnet, у которой
+    нет avg-pool и fc слоев.
+    Принимает на вход тензор изображений
+    [B, 3, H, W], возвращает [B, 512, H/32, W/32].
+    """
+    def __init__(self):
+        super().__init__()
+        md = resnet34(pretrained=True)
         # все, кроме avgpool и fc
         self.md = nn.Sequential(
             md.conv1,
@@ -115,11 +141,13 @@ class ResnetBackbone(nn.Module):
     [B, 3, H, W], возвращает [B, C, H/R, W/R], где R = 4.
     C может быть выбрано разным, в конструкторе ниже C = 64.
     """
-    def __init__(self, pretrained: bool = True, out_channels=64):
+    def __init__(self, pretrained: str = "resnet18", out_channels=64):
         super().__init__()
         # downscale - fully-convolutional сеть, снижающая размерность в 32 раза
-        if pretrained:
+        if pretrained == "resnet18":
             self.downscale = HeadlessPretrainedResnet18Encoder()
+        elif pretrained == "resnet34":
+            self.downscale = HeadlessPretrainedResnet34Encoder()
         else:
             self.downscale = HeadlessResnet18Encoder()
 

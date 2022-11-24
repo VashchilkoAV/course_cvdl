@@ -55,7 +55,7 @@ class CenterNet(nn.Module):
     """
     Детектор объектов из статьи 'Objects as Points': https://arxiv.org/pdf/1904.07850.pdf
     """
-    def __init__(self, pretrained=True, head_kwargs={}, nms_kwargs={}, points_to_objects_kwargs={}):
+    def __init__(self, pretrained="resnet18", head_kwargs={}, nms_kwargs={}, points_to_objects_kwargs={}):
         super().__init__()
         self.backbone = ResnetBackbone(pretrained)
         self.head = CenterNetHead(**head_kwargs)
