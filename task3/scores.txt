@@ -1,4 +1,4 @@
 centernet_baseline -- 0.112
 centernet_resnet18_640 -- 0.340
 centernet_resnet34_512 -- 0.337
-centernet_resnet34_640 -- 0.361
+centernet_resnet34_640 -- 0.373
