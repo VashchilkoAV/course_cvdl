@@ -1,5 +1,6 @@
 asttokens==2.1.0
 backcall==0.2.0
+beautifulsoup4==4.11.1
 certifi==2022.9.24
 charset-normalizer==2.1.1
 contourpy==1.0.6
@@ -9,7 +10,9 @@ decorator==5.1.1
 editdistance==0.6.1
 entrypoints==0.4
 executing==1.2.0
+filelock==3.8.0
 fonttools==4.38.0
+gdown==4.5.4
 idna==3.4
 ipykernel==6.17.0
 ipython==8.6.0
@@ -38,11 +41,13 @@ ptyprocess==0.7.0
 pure-eval==0.2.2
 Pygments==2.13.0
 pyparsing==3.0.9
+PySocks==1.7.1
 python-dateutil==2.8.2
 pyzmq==24.0.1
 requests==2.28.1
 setuptools==59.6.0
 six==1.16.0
+soupsieve==2.3.2.post1
 stack-data==0.6.0
 torch==1.13.0
 torchvision==0.14.0
