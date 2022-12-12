@@ -1,8 +1,11 @@
+apache-tvm==0.10.0
 asttokens==2.1.0
+attrs==22.1.0
 backcall==0.2.0
 beautifulsoup4==4.11.1
 certifi==2022.9.24
 charset-normalizer==2.1.1
+cloudpickle==2.2.0
 coloredlogs==15.0.1
 contourpy==1.0.6
 cycler==0.11.0
@@ -53,11 +56,13 @@ PySocks==1.7.1
 python-dateutil==2.8.2
 pyzmq==24.0.1
 requests==2.28.1
+scipy==1.9.3
 setuptools==59.6.0
 six==1.16.0
 soupsieve==2.3.2.post1
 stack-data==0.6.0
 sympy==1.11.1
+synr==0.6.0
 torch==1.13.0
 torchvision==0.14.0
 tornado==6.2
@@ -67,3 +72,4 @@ typing_extensions==4.4.0
 urllib3==1.26.12
 wcwidth==0.2.5
 wheel==0.38.2
+xgboost==1.7.2
