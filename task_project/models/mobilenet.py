@@ -63,18 +63,3 @@ class MobileNet(nn.Module):
         x = self.fc(x)
         return x
 
-def main():
-    import torchvision.models
-    model = MobileNet(relu6=True)
-    model = torch.nn.DataParallel(model).cuda()
-    model_filename = os.path.join('results', 'imagenet.arch=mobilenet.lr=0.1.bs=256', 'model_best.pth.tar')
-    if os.path.isfile(model_filename):
-        print("=> loading Imagenet pretrained model '{}'".format(model_filename))
-        checkpoint = torch.load(model_filename)
-        epoch = checkpoint['epoch']
-        best_prec1 = checkpoint['best_prec1']
-        model.load_state_dict(checkpoint['state_dict'])
-        print("=> loaded Imagenet pretrained model '{}' (epoch {}). best_prec1={}".format(model_filename, epoch, best_prec1))
-
-if __name__ == '__main__':
-    main()

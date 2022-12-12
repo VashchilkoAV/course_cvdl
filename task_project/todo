@@ -1,0 +1,6 @@
+-add metrics measuremnt during trining and make plot for it
+-train on 1 batch to check model
+-replace mobilenet modules with models.models modules
+-better pretrain
+-try to learn without pretrain
+-other todoes from FastDepth.pdf

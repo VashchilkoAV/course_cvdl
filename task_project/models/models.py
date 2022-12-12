@@ -7,7 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models
 
-import imagenet
+from . import mobilenet
+from .mobilenet import MobileNet
 
 
 def weights_init(m):
@@ -98,9 +99,9 @@ class Model(nn.Module):
     def __init__(self, pretrained=True, decoder_kernel_size=5, decoder_interpolation_scale_factor=2):
         super().__init__()
         
-        mobilenet = imagenet.mobilenet.MobileNet()
+        mobilenet = MobileNet()
         if pretrained:
-            pretrained_path = os.path.join('cifar100.pth')
+            pretrained_path = os.path.join('./outputs/cifar100.pth')
             checkpoint = torch.load(pretrained_path, map_location='cpu')
             state_dict = checkpoint.state_dict()
 
