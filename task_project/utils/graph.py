@@ -8,32 +8,6 @@ import math
 
 cmap = plt.cm.viridis
 
-
-def parse_command():
-    data_names = ['nyudepthv2']
-
-    from dataloaders.dataloader import MyDataloader
-    modality_names = MyDataloader.modality_names
-
-    import argparse
-    parser = argparse.ArgumentParser(description='FastDepth')
-    parser.add_argument('--data', metavar='DATA', default='nyudepthv2',
-                        choices=data_names,
-                        help='dataset: ' + ' | '.join(data_names) + ' (default: nyudepthv2)')
-    parser.add_argument('--modality', '-m', metavar='MODALITY', default='rgb', choices=modality_names,
-                        help='modality: ' + ' | '.join(modality_names) + ' (default: rgb)')
-    parser.add_argument('-j', '--workers', default=16, type=int, metavar='N',
-                        help='number of data loading workers (default: 16)')
-    parser.add_argument('--print-freq', '-p', default=50, type=int,
-                        metavar='N', help='print frequency (default: 50)')
-    parser.add_argument('-e', '--evaluate', default='', type=str, metavar='PATH',)
-    parser.add_argument('--gpu', default='0', type=str, metavar='N', help="gpu id")
-    parser.set_defaults(cuda=True)
-
-    args = parser.parse_args()
-    return args
-
-
 def colored_depthmap(depth, d_min=None, d_max=None):
     if d_min is None:
         d_min = np.min(depth)
