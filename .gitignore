@@ -4,3 +4,4 @@
 .venv
 *.pt
 *.pth
+*.onnx

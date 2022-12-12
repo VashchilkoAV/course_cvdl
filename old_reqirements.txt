@@ -3,7 +3,6 @@ backcall==0.2.0
 beautifulsoup4==4.11.1
 certifi==2022.9.24
 charset-normalizer==2.1.1
-coloredlogs==15.0.1
 contourpy==1.0.6
 cycler==0.11.0
 debugpy==1.6.3
@@ -12,10 +11,8 @@ editdistance==0.6.1
 entrypoints==0.4
 executing==1.2.0
 filelock==3.8.0
-flatbuffers==22.12.6
 fonttools==4.38.0
 gdown==4.5.4
-humanfriendly==10.0
 idna==3.4
 ipykernel==6.17.0
 ipython==8.6.0
@@ -25,16 +22,12 @@ jupyter_core==4.11.2
 kiwisolver==1.4.4
 matplotlib==3.6.2
 matplotlib-inline==0.1.6
-mpmath==1.2.1
 nest-asyncio==1.5.6
 numpy==1.23.4
 nvidia-cublas-cu11==11.10.3.66
 nvidia-cuda-nvrtc-cu11==11.7.99
 nvidia-cuda-runtime-cu11==11.7.99
 nvidia-cudnn-cu11==8.5.0.96
-onnx==1.12.0
-onnxruntime==1.13.1
-onnxruntime-gpu==1.13.1
 opencv-python==4.6.0.66
 packaging==21.3
 parso==0.8.3
@@ -43,7 +36,6 @@ pickleshare==0.7.5
 Pillow==9.3.0
 pip==22.2
 prompt-toolkit==3.0.32
-protobuf==3.20.1
 psutil==5.9.3
 ptyprocess==0.7.0
 pure-eval==0.2.2
@@ -57,7 +49,6 @@ setuptools==59.6.0
 six==1.16.0
 soupsieve==2.3.2.post1
 stack-data==0.6.0
-sympy==1.11.1
 torch==1.13.0
 torchvision==0.14.0
 tornado==6.2
